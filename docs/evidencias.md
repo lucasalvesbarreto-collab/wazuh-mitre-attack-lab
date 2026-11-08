@@ -16,7 +16,7 @@ Prints do dashboard e JSONs dos alertas, organizados por técnica. Os prints vã
 | Teste de spray.png | T1110-brute-force | T1110-04-spray-100111.png |
 | spray + logon 100112.png | T1110-brute-force | T1110-05-spray-logon-100112-sobreposicao.png |
 | t1136.002.png | T1136.002-create-domain-account | T1136.002-01-net-user-add.png |
-| troca de senha 60110.png | T1136.002-create-domain-account | T1136.002-02-negativo-troca-de-senha.png |
+| troca de senha 60110.png | T1136.002-create-domain-account | T1136.002-02-negativo-alteracao-60110.png |
 | so 100120 sem 100121.png | T1136.002-create-domain-account | T1136.002-03-new-aduser-so-100120.png |
 | Criação conta antiga.png | T1098-account-manipulation | T1098-00-criacao-svc-antiga.png |
 | T1098.png | T1098-account-manipulation | T1098-01-visao-geral.png |
