@@ -22,18 +22,18 @@ Prints do dashboard e JSONs dos alertas, organizados por técnica. Os prints vã
 | T1098.png | T1098-account-manipulation | T1098-01-visao-geral.png |
 | 100122 + 100123.png | T1098-account-manipulation | T1098-02-admins-local.png |
 | 100125 + 100126.png | T1098-account-manipulation | T1098-03-domain-admins-sem-correlacao-13min.png |
+| t1098-cadeia-completa-dashboard.png | T1098-account-manipulation | T1098-04-cadeia-completa.png |
+| t1098-100124-detalhe.png | T1098-account-manipulation | T1098-05-100124-detalhe.png |
+| t1098-100126-detalhe.png | T1098-account-manipulation | T1098-06-100126-detalhe.png |
+| t1059.png | T1059.001-powershell | T1059.001-01-base64-100130-100135.png |
 | Teste D bypass 100131.png | T1059.001-powershell | T1059.001-03-bypass-100131.png |
 | Teste IEX 100132.png | T1059.001-powershell | T1059.001-04-iex-100132.png |
 | Teste C download 100133.png | T1059.001-powershell | T1059.001-05-download-100133.png |
+| 100135 expandido parentimage.png | T1059.001-powershell | T1059.001-07-cmd-100135.png |
 
 ## Prints que faltam
 
-- [ ] **T1098:** a lista com a cadeia completa (100120 → 100124 e 100120 → 100126, de 15:16 locais)
-      e as linhas 100124 e 100126 **expandidas** (`T1098-04-cadeia-completa.png`, `...-100126-detalhe.png`)
-- [ ] **T1059.001:** a lista com 100130 (21:32:38), 100134 (21:32:58) e 100130 (21:33:19)
-      (`T1059.001-01-base64-100130-100135.png`)
 - [ ] **T1059.001:** um 92213 expandido com `targetFilename` (`T1059.001-06-ruido-92213.png`)
-- [ ] **T1059.001:** um alerta **100135 expandido** (`parentImage` = cmd.exe, `image` = powershell.exe) e o A4b (100134) (`T1059.001-07-cmd-100135.png`)
 
 ## JSONs exportados
 
