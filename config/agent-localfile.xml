@@ -1,0 +1,27 @@
+<!--
+  Blocos <localfile> do agente Windows (SERVER01).
+  Inserir dentro de <ossec_config> em:
+    C:\Program Files (x86)\ossec-agent\ossec.conf
+  Depois: Restart-Service WazuhSvc
+
+  log_format eventchannel = lê o canal moderno do Event Viewer (XML estruturado),
+  que o decoder windows_eventchannel do manager transforma em win.system.* e win.eventdata.*
+-->
+
+<!-- Security: logon (4624/4625), contas (4720), grupos (4728/4732) -->
+<localfile>
+  <location>Security</location>
+  <log_format>eventchannel</log_format>
+</localfile>
+
+<!-- Sysmon: evento 1 (criação de processo com linha de comando completa) -->
+<localfile>
+  <location>Microsoft-Windows-Sysmon/Operational</location>
+  <log_format>eventchannel</log_format>
+</localfile>
+
+<!-- PowerShell moderno: evento 4104 (texto do ScriptBlock, já desofuscado) -->
+<localfile>
+  <location>Microsoft-Windows-PowerShell/Operational</location>
+  <log_format>eventchannel</log_format>
+</localfile>

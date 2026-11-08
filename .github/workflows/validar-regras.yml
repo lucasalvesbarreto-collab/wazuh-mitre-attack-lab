@@ -1,0 +1,53 @@
+# Valida as regras a cada push / pull request.
+# Não substitui o wazuh-analysisd -t (que precisa do Wazuh instalado), mas pega
+# os erros mais comuns antes de chegarem ao manager: XML malformado, ID duplicado,
+# ID fora da faixa do projeto e regra sem mapeamento MITRE.
+name: Validar regras Wazuh
+
+on:
+  push:
+    paths: ["rules/**", "tecnicas/**/regra.xml", ".github/workflows/**"]
+  pull_request:
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checar XML, IDs e mapeamento MITRE
+        run: |
+          python3 - <<'PY'
+          import glob, re, sys, xml.etree.ElementTree as ET
+
+          erros = []
+          for arq in ["rules/local_rules.xml"] + glob.glob("tecnicas/*/regra.xml"):
+              texto = open(arq, encoding="utf-8").read()
+              # O Wazuh aceita vários <group> no mesmo arquivo, sem raiz única:
+              # envolvemos num elemento <root> só para o parser conseguir ler.
+              try:
+                  raiz = ET.fromstring(f"<root>{texto}</root>")
+              except ET.ParseError as e:
+                  erros.append(f"{arq}: XML inválido - {e}")
+                  continue
+
+              ids = []
+              for regra in raiz.iter("rule"):
+                  rid = int(regra.get("id"))
+                  ids.append(rid)
+                  if not 100100 <= rid <= 100199:
+                      erros.append(f"{arq}: regra {rid} fora da faixa 100100-100199")
+                  if regra.find("mitre/id") is None:
+                      erros.append(f"{arq}: regra {rid} sem <mitre><id>")
+                  if regra.find("description") is None:
+                      erros.append(f"{arq}: regra {rid} sem <description>")
+
+              duplicados = {i for i in ids if ids.count(i) > 1}
+              if duplicados:
+                  erros.append(f"{arq}: IDs duplicados {sorted(duplicados)}")
+              print(f"OK  {arq}: {len(ids)} regras")
+
+          if erros:
+              print("\n".join(erros))
+              sys.exit(1)
+          PY

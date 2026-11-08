@@ -1,0 +1,27 @@
+# Segredos e credenciais — nunca versionar
+*.env
+.env*
+*senha*
+*password*
+*credential*
+*.key
+*.pem
+*.pfx
+wazuh-install-files.tar
+wazuh-passwords.txt
+
+# Logs brutos do Wazuh (grandes e com dados do ambiente)
+alerts.json
+archives.json
+*.log
+
+# Exports de incidente gerados pelos playbooks
+incidente-*.json
+
+# Sistema operacional / editores
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,182 @@
+<group name="windows,authentication_failures,attack_lab,">
+
+  <!-- T1110.001: várias falhas para o MESMO usuário -->
+  <rule id="100110" level="10" frequency="5" timeframe="120">
+    <if_matched_sid>60122</if_matched_sid>
+    <same_field>win.eventdata.targetUserName</same_field>
+    <description>T1110.001: 5+ falhas de logon para o mesmo usuário em 2 min</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+  </rule>
+
+  <!-- T1110.003: falhas para VÁRIOS usuários a partir da mesma origem -->
+  <rule id="100111" level="12" frequency="6" timeframe="180">
+    <if_matched_sid>60122</if_matched_sid>
+    <same_field>win.eventdata.ipAddress</same_field>
+    <different_field>win.eventdata.targetUserName</different_field>
+    <description>T1110.003: possível password spraying (6+ usuários distintos, mesma origem)</description>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+  </rule>
+
+  <!-- T1110 + T1078: logon com SUCESSO na conta que sofreu brute force -->
+  <rule id="100112" level="14" timeframe="600">
+    <if_sid>60106,92657</if_sid>
+    <if_matched_sid>100110</if_matched_sid>
+    <same_field>win.eventdata.targetUserName</same_field>
+    <description>T1110/T1078: logon com sucesso após brute force na mesma conta (provável comprometimento)</description>
+    <mitre>
+      <id>T1110</id>
+      <id>T1078</id>
+    </mitre>
+  </rule>
+
+  <!-- Variante para spraying: sucesso a partir da mesma origem após o alerta de spray -->
+  <rule id="100113" level="14" timeframe="600">
+    <if_sid>60106,92657</if_sid>
+    <if_matched_sid>100111</if_matched_sid>
+    <same_field>win.eventdata.ipAddress</same_field>
+    <description>T1110.003/T1078: logon com sucesso da mesma origem após password spraying</description>
+    <mitre>
+      <id>T1110.003</id>
+      <id>T1078</id>
+    </mitre>
+  </rule>
+
+  <!-- T1136.002: conta de domínio criada (evento 4720, visão do sistema operacional) -->
+  <rule id="100120" level="10">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4720$</field>
+    <description>T1136.002: conta de domínio criada - $(win.eventdata.targetUserName) por $(win.eventdata.subjectUserName)</description>
+    <mitre>
+      <id>T1136.002</id>
+    </mitre>
+  </rule>
+
+  <!-- T1136.002: net user /add executado (Sysmon evento 1, visão do processo) -->
+  <rule id="100121" level="10">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?\s+user\s+.*\/add</field>
+    <description>T1136.002: 'net user /add' executado por $(win.eventdata.user)</description>
+    <mitre>
+      <id>T1136.002</id>
+    </mitre>
+  </rule>
+
+</group>
+
+<group name="windows,account_management,attack_lab,">
+
+  <!-- T1098: membro adicionado ao grupo Administradores local (evento 4732).
+       Casa pelo SID do grupo, que não depende do idioma do Windows. -->
+  <rule id="100122" level="12">
+    <if_sid>60154</if_sid>
+    <field name="win.system.eventID">^4732$</field>
+    <field name="win.eventdata.targetSid">^S-1-5-32-544$</field>
+    <description>T1098: membro adicionado ao grupo Administradores local por $(win.eventdata.subjectUserName) (SID do membro: $(win.eventdata.memberSid))</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+  </rule>
+
+  <!-- T1098: net localgroup Administrators/Administradores /add (Sysmon evento 1) -->
+  <rule id="100123" level="10">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?\s+localgroup\s+"?(administrators|administradores)"?\s+.*\/add</field>
+    <description>T1098: 'net localgroup administradores /add' executado por $(win.eventdata.user)</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+  </rule>
+
+  <!-- Correlação: conta criada (100120) e promovida a Administradores (100122) pelo mesmo usuário em até 10 min -->
+  <rule id="100124" level="14" timeframe="600">
+    <if_sid>100122</if_sid>
+    <if_matched_sid>100120</if_matched_sid>
+    <same_field>win.eventdata.subjectUserName</same_field>
+    <description>T1136.002 + T1098: conta criada e promovida a Administradores pelo mesmo usuário em 10 min (provável persistência)</description>
+    <mitre>
+      <id>T1136.002</id>
+      <id>T1098</id>
+    </mitre>
+  </rule>
+
+</group>
+
+<group name="windows,account_management,attack_lab,">
+
+  <!-- T1098: membro adicionado ao Domain Admins (evento 4728). Filha da regra padrão 60159.
+       O filtro do eventID evita casar remoções e alterações do grupo. -->
+  <rule id="100125" level="14">
+    <if_sid>60159</if_sid>
+    <field name="win.system.eventID">^4728$</field>
+    <description>T1098: membro adicionado ao Domain Admins por $(win.eventdata.subjectUserName) (SID do membro: $(win.eventdata.memberSid))</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+  </rule>
+
+  <!-- Correlação: conta de domínio criada (100120) e promovida a Domain Admins (100125) pelo mesmo usuário em até 10 min -->
+  <rule id="100126" level="15" timeframe="600">
+    <if_sid>100125</if_sid>
+    <if_matched_sid>100120</if_matched_sid>
+    <same_field>win.eventdata.subjectUserName</same_field>
+    <description>T1136.002 + T1098: conta de domínio criada e promovida a Domain Admins pelo mesmo usuário em 10 min (provável persistência crítica)</description>
+    <mitre>
+      <id>T1136.002</id>
+      <id>T1098</id>
+    </mitre>
+  </rule>
+
+</group>
+
+<group name="windows,powershell,attack_lab,">
+
+  <!-- T1059.001: PowerShell com -EncodedCommand (Base64) -->
+  <!-- Pai: 92057 (Sysmon evt1 - powershell spawnou powershell com base64) -->
+  <rule id="100130" level="12">
+    <if_sid>92057,92027</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(powershell|pwsh).*?\s-e(c|n[a-z]{0,12})?\s+[A-Za-z0-9+/]{20,}={0,2}</field>
+    <description>T1059.001: PowerShell com comando Base64 (-EncodedCommand e abreviações) por $(win.eventdata.user)</description>
+    <mitre><id>T1059.001</id></mitre>
+  </rule>
+
+  <!-- T1059.001: PowerShell com -ExecutionPolicy Bypass -->
+  <!-- Pai: 92027 (Sysmon evt1 - powershell spawnou instância powershell) -->
+  <rule id="100131" level="10">
+    <if_sid>92027</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)-exec(utionpolicy)?\s+bypass</field>
+    <description>T1059.001: PowerShell executado com ExecutionPolicy Bypass por $(win.eventdata.user)</description>
+    <mitre><id>T1059.001</id></mitre>
+  </rule>
+
+  <!-- T1059.001: IEX / Invoke-Expression no ScriptBlock (4104) -->
+  <!-- Pai: 91837 (PS/Operational 4104 - possível execução de string como código) -->
+  <rule id="100132" level="12">
+    <if_sid>91837</if_sid>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)(iex|invoke-expression)\s*[\(\s]</field>
+    <description>T1059.001: Invoke-Expression (IEX) detectado em ScriptBlock PowerShell - possível execução de payload em memória</description>
+    <mitre><id>T1059.001</id></mitre>
+  </rule>
+
+  <!-- T1059.001: Download de payload via Net.WebClient (Sysmon evt1) -->
+  <!-- Detecta a linha de comando mesmo quando o download falha (loopback, DNS) -->
+  <rule id="100133" level="14">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(Net\.WebClient|WebClient|DownloadString|DownloadFile|Invoke-WebRequest|iwr|wget|curl)\s*[\.\(]</field>
+    <description>T1059.001: PowerShell tentando download de payload via $(win.eventdata.commandLine) - possível C2 ou staging</description>
+    <mitre><id>T1059.001</id></mitre>
+  </rule>
+
+  <!-- T1059.001: ScriptBlock com flags de evasão combinadas (4104) -->
+  <!-- Detecta -nop -w hidden -enc juntos — padrão clássico de stager -->
+  <rule id="100134" level="14">
+    <if_sid>100130</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)-w(indowstyle)?\s+h(idden)?\b</field>
+    <description>T1059.001: PowerShell Base64 com janela oculta - padrão de stager/C2 por $(win.eventdata.user)</description>
+    <mitre><id>T1059.001</id></mitre>
+  </rule>
+
+</group>

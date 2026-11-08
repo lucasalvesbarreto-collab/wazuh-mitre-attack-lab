@@ -1,0 +1,52 @@
+<!--
+  T1136.002 - Create Account: Domain Account (Persistence)
+
+  Uso: copiar este bloco para /var/ossec/etc/rules/local_rules.xml
+  (um arquivo pode ter vários <group>, desde que cada um tenha somente o atributo name).
+
+  Antes de reiniciar o manager, validar:
+    sudo /var/ossec/bin/wazuh-analysisd -t
+
+  IMPORTANTE: escrever o arquivo com heredoc de aspas simples ('EOF') para evitar
+  que o shell interprete $(campo) nas descriptions como comandos.
+
+  Por que T1136.002 e não T1136.001?
+  SERVER01 opera como Domain Controller primário (DomainRole=5).
+  Contas criadas nele são automaticamente contas de domínio do Active Directory,
+  não contas locais. T1136.001 (Local Account) se aplica a workstations e servidores membros.
+-->
+
+<group name="windows,account_management,attack_lab,">
+
+  <!--
+    100120: visão do sistema operacional.
+    Evento 4720 (conta de usuário criada), filho da regra padrão 60109.
+    O filtro ^4720$ evita casar os demais eventos da 60109 (conta habilitada ou alterada).
+    Em um DC, evento 4720 sempre representa criação de conta de domínio (AD).
+  -->
+  <rule id="100120" level="10">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4720$</field>
+    <description>T1136.002: conta de domínio criada - $(win.eventdata.targetUserName) por $(win.eventdata.subjectUserName)</description>
+    <mitre>
+      <id>T1136.002</id>
+    </mitre>
+  </rule>
+
+  <!--
+    100121: visão do processo.
+    Sysmon evento 1 com net user /add (ou net1 user /add) na linha de comando.
+    Não cobre criação via API ou PowerShell (New-ADUser): essa lacuna é coberta pela 100120.
+    A flag /domain é opcional no DC (o padrão já é criar no domínio), por isso a regex
+    não a exige — net user /add em um DC sempre cria conta de domínio.
+  -->
+  <rule id="100121" level="10">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?\s+user\s+.*\/add</field>
+    <description>T1136.002: 'net user /add' executado por $(win.eventdata.user)</description>
+    <mitre>
+      <id>T1136.002</id>
+    </mitre>
+  </rule>
+
+</group>

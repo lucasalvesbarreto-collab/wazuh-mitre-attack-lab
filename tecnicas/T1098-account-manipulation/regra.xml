@@ -1,0 +1,101 @@
+<!--
+  T1098 - Account Manipulation (Persistence / Privilege Escalation)
+
+  Uso: copiar este bloco para /var/ossec/etc/rules/local_rules.xml
+  (o arquivo pode ter vários <group>, desde que cada um possua apenas o atributo name).
+
+  Antes de reiniciar o manager, validar a sintaxe:
+    sudo /var/ossec/bin/wazuh-analysisd -t
+
+  IMPORTANTE: escrever o bloco com heredoc de aspas simples ('EOF') para evitar
+  que o shell interprete $(campo) nas descriptions como comandos.
+-->
+
+<group name="windows,account_management,attack_lab,">
+
+  <!--
+    100122: visão do sistema operacional — promoção ao grupo Administradores local.
+    Evento 4732 (membro adicionado a grupo de segurança local), filho da regra padrão 60154.
+    O filtro targetSid ^S-1-5-32-544$ identifica o grupo "Administradores/Administrators"
+    pelo SID fixo do Windows, independentemente do idioma do sistema operacional.
+    O campo memberSid na description identifica a conta promovida.
+  -->
+  <rule id="100122" level="12">
+    <if_sid>60154</if_sid>
+    <field name="win.system.eventID">^4732$</field>
+    <field name="win.eventdata.targetSid">^S-1-5-32-544$</field>
+    <description>T1098: membro adicionado ao grupo Administradores local por $(win.eventdata.subjectUserName) (SID do membro: $(win.eventdata.memberSid))</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+  </rule>
+
+  <!--
+    100123: visão do processo — net localgroup /add na linha de comando.
+    Sysmon evento 1 com net localgroup (ou net1 localgroup) seguido do nome do grupo
+    Administradores (em inglês ou português) e da flag /add.
+    Não cobre Add-LocalGroupMember nem Add-ADGroupMember (APIs PowerShell):
+    essa lacuna é coberta pelas regras 100122 e 100125.
+  -->
+  <rule id="100123" level="10">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?\s+localgroup\s+"?(administrators|administradores)"?\s+.*\/add</field>
+    <description>T1098: 'net localgroup administradores /add' executado por $(win.eventdata.user)</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+  </rule>
+
+  <!--
+    100124: correlação OS — conta criada E promovida a Administradores local em 10 min.
+    Encadeia 100122 (promoção, alerta atual) com 100120 (criação de conta, alerta anterior)
+    pelo mesmo subjectUserName (mesmo atacante/operador).
+    Sinaliza persistência: o atacante criou uma backdoor e logo a elevou.
+    Nível 14 (crítico) porque indica intenção deliberada de persistência privilegiada.
+  -->
+  <rule id="100124" level="14" timeframe="600">
+    <if_sid>100122</if_sid>
+    <if_matched_sid>100120</if_matched_sid>
+    <same_field>win.eventdata.subjectUserName</same_field>
+    <description>T1136.002 + T1098: conta criada e promovida a Administradores pelo mesmo usuário em 10 min (provável persistência)</description>
+    <mitre>
+      <id>T1136.002</id>
+      <id>T1098</id>
+    </mitre>
+  </rule>
+
+  <!--
+    100125: visão do sistema operacional — promoção ao Domain Admins (grupo global de domínio).
+    Evento 4728 (membro adicionado a grupo de segurança global), filho da regra padrão 60159.
+    O evento 4728 já identifica o grupo global (Domain Admins = SID terminando em -512),
+    então não é necessário filtrar targetSid adicionalmente — o evento só ocorre em DCs.
+    Nível 14 porque Domain Admins tem controle total sobre o domínio Active Directory.
+  -->
+  <rule id="100125" level="14">
+    <if_sid>60159</if_sid>
+    <field name="win.system.eventID">^4728$</field>
+    <description>T1098: membro adicionado ao Domain Admins por $(win.eventdata.subjectUserName) (SID do membro: $(win.eventdata.memberSid))</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+  </rule>
+
+  <!--
+    100126: correlação — conta de domínio criada E promovida a Domain Admins em 10 min.
+    Encadeia 100125 (promoção a DA, alerta atual) com 100120 (criação de conta, alerta anterior)
+    pelo mesmo subjectUserName.
+    Nível 15 (máximo) porque o atacante ganhou controle total do domínio Active Directory
+    em menos de 10 minutos — cenário de comprometimento crítico.
+  -->
+  <rule id="100126" level="15" timeframe="600">
+    <if_sid>100125</if_sid>
+    <if_matched_sid>100120</if_matched_sid>
+    <same_field>win.eventdata.subjectUserName</same_field>
+    <description>T1136.002 + T1098: conta de domínio criada e promovida a Domain Admins pelo mesmo usuário em 10 min (provável persistência crítica)</description>
+    <mitre>
+      <id>T1136.002</id>
+      <id>T1098</id>
+    </mitre>
+  </rule>
+
+</group>

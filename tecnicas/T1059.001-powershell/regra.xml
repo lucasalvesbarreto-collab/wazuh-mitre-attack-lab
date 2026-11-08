@@ -1,0 +1,142 @@
+<!--
+  T1059.001 - Command and Scripting Interpreter: PowerShell (Execution)
+
+  Uso: este bloco já está em /var/ossec/etc/rules/local_rules.xml no manager.
+  Para replicar em outro ambiente, copiar o bloco <group> abaixo.
+
+  Antes de reiniciar o manager, validar:
+    sudo /var/ossec/bin/wazuh-analysisd -t
+
+  IMPORTANTE: escrever o arquivo com heredoc de aspas simples ('EOF') para evitar
+  que o shell interprete $(campo) nas descriptions como comandos.
+
+  Duas camadas de detecção:
+    1. Sysmon evento 1 (ProcessCreate): analisa win.eventdata.commandLine
+    2. PowerShell/Operational evento 4104 (ScriptBlock): analisa win.eventdata.scriptBlockText
+
+  Pré-requisitos no Windows (SERVER01):
+    - Sysmon instalado e coletado pelo agente Wazuh (localfile Microsoft-Windows-Sysmon/Operational)
+    - ScriptBlock Logging habilitado no registro:
+        HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\EnableScriptBlockLogging = 1
+        HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\EnableScriptBlockInvocationLogging = 1
+    - Canal PowerShell/Operational coletado pelo agente (localfile Microsoft-Windows-PowerShell/Operational)
+
+  Regras pai identificadas no dashboard após testes iniciais:
+    92057 — Powershell.exe spawned a powershell process which executed a base64 encoded command (Sysmon evt1)
+    92027 — Powershell process spawned powershell instance (Sysmon evt1)
+    91837 — Powershell executed "Get-Content -Stream or Invoke-Expression". Possible string execution as code (evt 4104)
+    sysmon_event1 — grupo genérico Sysmon evt1 (para Download/WebClient, sem pai específico nas regras padrão)
+-->
+
+<group name="windows,powershell,attack_lab,">
+
+  <!--
+    100130: PowerShell com -EncodedCommand (Base64), incluindo abreviações (-enc, -ec, -e, -enco...)
+    Pai: 92057,92027 (Sysmon evt1). O if_sid aceita lista: a regra é filha de qualquer uma das duas.
+      - 92057 casa com o nome completo e algumas abreviações
+      - 92027 ("PowerShell abriu PowerShell") casa com -enc, que a regex da 92057 NÃO cobre
+    Por que NÃO usar if_group aqui: regras irmãs são avaliadas na ordem de carregamento e a
+    primeira que casa vence. As regras padrão (ruleset/) carregam antes do local_rules.xml,
+    então 92057/92027 ganhariam e esta regra nunca seria avaliada.
+    ATENÇÃO: o Wazuh guarda commandLine ESCAPADO (\"C:\\Windows\\...\\powershell.exe\" -enc ...).
+    Por isso a regex ignora o caminho do executável (.*?) em vez de tentar casar aspas e barras.
+    Prefixos aceitos: -e, -ec, ou -en seguido de até 12 letras (todos os prefixos de -encodedcommand).
+    -ex/-exec (ExecutionPolicy) não casa. Exige >= 20 caracteres Base64 depois da flag.
+  -->
+  <rule id="100130" level="12">
+    <if_sid>92057,92027</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(powershell|pwsh).*?\s-e(c|n[a-z]{0,12})?\s+[A-Za-z0-9+/]{20,}={0,2}</field>
+    <description>T1059.001: PowerShell com comando Base64 (-EncodedCommand e abreviações) por $(win.eventdata.user)</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+  <!--
+    100131: PowerShell com -ExecutionPolicy Bypass
+    Pai: 92027 (Sysmon evt1 — powershell spawnou instância powershell)
+    Nível 10: bypass de política é suspeito mas também usado por scripts legítimos de TI.
+    A regex aceita tanto "-exec bypass" (abreviado) quanto "-executionpolicy bypass" (completo).
+  -->
+  <rule id="100131" level="10">
+    <if_sid>92027</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)-exec(utionpolicy)?\s+bypass</field>
+    <description>T1059.001: PowerShell executado com ExecutionPolicy Bypass por $(win.eventdata.user)</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+  <!--
+    100132: IEX / Invoke-Expression detectado no ScriptBlock (evento 4104)
+    Pai: 91837 (PS/Operational 4104 — "possible string execution as code")
+    Nível 12: IEX executando string dinâmica é o mecanismo central de fileless malware.
+    O campo scriptBlockText contém o código PowerShell exatamente como enviado ao runtime.
+    A regex detecta tanto "iex" (alias) quanto "invoke-expression" (forma completa).
+  -->
+  <rule id="100132" level="12">
+    <if_sid>91837</if_sid>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)(iex|invoke-expression)\s*[\(\s]</field>
+    <description>T1059.001: Invoke-Expression (IEX) detectado em ScriptBlock PowerShell - possível execução de payload em memória</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+  <!--
+    100133: Download de payload via Net.WebClient ou equivalente (Sysmon evt1)
+    Pai: sysmon_event1 (grupo genérico — sem regra pai específica para WebClient nas regras padrão)
+    Nível 14: download de código remoto é comportamento de staging/C2, raramente legítimo em DCs.
+    Detecta tanto o nome da classe (.WebClient) quanto métodos isolados (DownloadString, DownloadFile)
+    e aliases comuns (iwr, wget, curl) — cobre variações de ofuscação parcial.
+    Nota: o Teste C (loopback 127.0.0.1:9999) pode não gerar alerta Sysmon se a conexão
+    falhar antes de o processo logar a linha de comando; a regra cobre o caso geral.
+  -->
+  <rule id="100133" level="14">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(Net\.WebClient|WebClient|DownloadString|DownloadFile|Invoke-WebRequest|iwr|wget|curl)\s*[\.\(]</field>
+    <description>T1059.001: PowerShell tentando download de payload via $(win.eventdata.commandLine) - possível C2 ou staging</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+  <!--
+    100135: Base64 iniciado por processo que NÃO é PowerShell (cmd.exe, Office, tarefa agendada...)
+    Pai: sysmon_event1. As regras padrão 92057/92027 exigem PowerShell como pai; com outro pai
+    nenhuma casa e a 100130 nunca seria avaliada (ponto cego encontrado no teste A4).
+    Funciona com if_group porque, nesse caso, nenhuma regra padrão casa antes. Se uma casar,
+    já existe um alerta padrão de qualquer jeito.
+    Filtro de image: sem ele, o cmd.exe que carrega o Base64 na própria linha de comando
+    (cmd /c "powershell -enc ...") gerava um alerta duplicado, além do powershell.exe real.
+    A description traz $(win.eventdata.parentImage): quem lançou o PowerShell é o dado-chave da triagem.
+  -->
+  <rule id="100135" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)(powershell|pwsh)\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(powershell|pwsh).*?\s-e(c|n[a-z]{0,12})?\s+[A-Za-z0-9+/]{20,}={0,2}</field>
+    <description>T1059.001: PowerShell com Base64 iniciado por $(win.eventdata.parentImage) por $(win.eventdata.user)</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+  <!--
+    100134: Base64 + janela oculta (padrão de stager de C2)
+    Pai: 100130 (PowerShell abrindo PowerShell) e 100135 (outros pais, como cmd.exe).
+    Só eleva a severidade quando há -w hidden. A 100135 é definida ANTES para o pai já existir
+    quando esta regra é lida.
+    Antes era if_group com regex ampla: "-NoProfile" casava como "-nop" e a regra roubava o
+    alerta da 100130 (um alerta por evento). Como filha, as duas deixam de competir.
+    Nível 14: Base64 + janela oculta é a assinatura clássica de Cobalt Strike/Metasploit.
+  -->
+  <rule id="100134" level="14">
+    <if_sid>100130,100135</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)-w(indowstyle)?\s+h(idden)?\b</field>
+    <description>T1059.001: PowerShell Base64 com janela oculta - padrão de stager/C2 por $(win.eventdata.user)</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+</group>
