@@ -125,9 +125,8 @@ passa pelo `net.exe`, e apenas a camada de SO (evento 4720) a enxerga.
 
 ## Evidências
 
-Guardadas em `evidencias/`:
+Prints do dashboard em `evidencias/`:
 
-- [ ] Print do dashboard com 100120 e 100121 na criação via `net user /add`
-- [ ] Print do teste negativo (troca de senha sem 100120 nem 100121)
-- [ ] Print do teste via `New-ADUser` (100120 sem 100121)
-- [ ] `alerta-100120.json` e `alerta-100121.json`
+- `T1136.002-01-net-user-add.png`: criação via `net user /add`: 100120 e 100121
+- `T1136.002-02-negativo-alteracao-60110.png`: teste negativo: alteração de conta gera só a regra padrão 60110
+- `T1136.002-03-new-aduser-so-100120.png`: criação via `New-ADUser`: só a 100120, sem a 100121

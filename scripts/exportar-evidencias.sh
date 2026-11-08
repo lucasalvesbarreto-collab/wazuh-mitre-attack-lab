@@ -38,6 +38,3 @@ for rid in 100110 100111 100112 100113 \
   chown "${SUDO_USER:-$USER}": "$saida"
   echo "  OK ${rid}: ${saida}"
 done
-
-echo
-echo "ATENÇÃO: revise os JSONs antes do commit (IPs, nomes de host e usuários do lab)."

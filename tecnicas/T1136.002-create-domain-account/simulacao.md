@@ -17,7 +17,7 @@ em DCs. Portanto, a técnica correta é **T1136.002 (Domain Account)**, não T11
 | SIEM | Wazuh (manager, indexer e dashboard) no Ubuntu Server, host `servidorubuntu` |
 | Alvo | Windows Server 2022 (agente Wazuh `SERVER01`, IP `192.168.5.130`), DC primário do domínio |
 | Rede | Rede interna/host-only, sem acesso externo |
-| Versões | Wazuh: _preencher_ · Windows: _preencher_ · Sysmon e configuração: _preencher_ |
+| Versões | Windows Server 2022 (build 20348) · Windows PowerShell 5.1 · Sysmon coletado pelo agente Wazuh |
 
 ## Pré-requisitos
 

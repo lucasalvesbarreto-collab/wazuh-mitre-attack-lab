@@ -142,47 +142,12 @@ e gerou um alerta separado. Isso é comportamento esperado e desejado — não �
 
 ## Evidências
 
-Guardadas em `evidencias/`:
+Prints do dashboard em `evidencias/`:
 
-- [ ] Print do dashboard com 100120, 100121, 100122, 100123, 100124 (Teste 1)
-- [ ] Print do dashboard com 100120, 100121, 100125, 100126 (Teste 2)
-- [ ] Print do Teste 3 mostrando 100125 sem 100126 (janela expirada)
-- [ ] `alerta-100122.json`, `alerta-100123.json`, `alerta-100124.json`
-- [ ] `alerta-100125.json`, `alerta-100126.json`
-
-## Validação da correlação com evidências (07/11/2026)
-
-### Cadeia completa positiva (horários locais, UTC-3)
-
-| Hora | Regra | O que aconteceu |
-|---|---|---|
-| 15:15:59 | 100121 | `net user svc_corr1 /add` (camada de processo) |
-| 15:16:08 | 100120 | conta `svc_corr1` criada (evento 4720) |
-| 15:16:10 | 100123 | `net localgroup administradores /add` |
-| 15:16:10 | **100124** (nível 14) | criada e promovida a Administradores **2 segundos** depois |
-| 15:16:21 | 100120 | conta `svc_corr2` criada |
-| 15:16:23 | **100126** (nível 15) | criada e promovida a Domain Admins **2 segundos** depois |
-
-### A 100122 e a 100125 não aparecem quando a correlação dispara
-
-Não é falha. O Wazuh gera **um alerta por evento**, o da regra mais específica da árvore:
-o 4732 casa com a 100122; como a 100124 é filha dela (`if_sid 100122`) e a condição de correlação
-também foi satisfeita, o alerta final é a 100124. O mesmo vale para 4728 → 100125 → 100126.
-Para o analista, isso é o comportamento desejado: um único alerta, já com severidade alta.
-
-### Negativos obtidos (parte planejados, parte acidentais)
-
-| Conta | Criação (100120) | Promoção | Intervalo | Resultado |
-|---|---|---|---|---|
-| svc_backup | 17:24:31 UTC | 17:40:43 (100122) | 16 min | só 100122; 100124 **não** disparou |
-| svc_update | 17:28:42 UTC | 17:42:07 (100125) | 13 min | só 100125; 100126 **não** disparou |
-| svc_antiga | 17:06:05 UTC | 18:04:12 (100122) | 58 min | só 100122 (negativo planejado) |
-
-A janela é `timeframe="600"` (10 minutos). Os dois primeiros negativos aconteceram porque o
-tempo gasto tirando prints entre a criação e a promoção passou de 10 minutos. Para obter o
-positivo, criação e promoção precisam estar **no mesmo bloco de comandos**.
-
-### Ruído associado
-
-As regras padrão 60147 e 60148 ("Security Enabled Local/Global Group Changed", T1484) disparam
-junto, a partir de eventos de alteração de grupo diferentes. Não concorrem com as regras 1001xx.
+- `T1098-00-criacao-svc-antiga.png`: criação da conta antiga usada no teste negativo
+- `T1098-01-visao-geral.png`: visão geral dos testes
+- `T1098-02-admins-local.png`: 100122 e 100123, promoção a Administradores local
+- `T1098-03-domain-admins-sem-correlacao-13min.png`: 100125 sem 100126, janela de 10 minutos expirada (13 min)
+- `T1098-04-cadeia-completa.png`: cadeia completa: 100120 → 100124 e 100120 → 100126
+- `T1098-05-100124-detalhe.png`: alerta 100124 expandido
+- `T1098-06-100126-detalhe.png`: alerta 100126 expandido

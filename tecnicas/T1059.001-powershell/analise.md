@@ -174,10 +174,11 @@ eventos; regra de linha de comando deve dizer também *qual processo* quer.
 
 ## Evidências
 
-Em `evidencias/` (nomes sugeridos):
+Prints do dashboard em `evidencias/`:
 
-- [x] JSONs: `alerta-100130.json` … `alerta-100134.json` (exportados com `exportar-evidencias.sh`)
-- [ ] Print do dashboard com a cadeia 100130 → 100134 (testes A e A2)
-- [ ] Print do 100131 (Bypass), 100132 (IEX) e 100133 (download)
-- [ ] Print de um 92213 expandido mostrando `__PSScriptPolicyTest` em `targetFilename`
-- [ ] Print do A4: um alerta 100135 expandido (`image` = powershell.exe, `parentImage` = cmd.exe) e o A4b (100134)
+- `T1059.001-01-base64-100130-100135.png`: cadeia Base64: 100130, 100134 e 100130 (testes A, A2 e A3)
+- `T1059.001-03-bypass-100131.png`: teste D, `-ExecutionPolicy Bypass` (100131)
+- `T1059.001-04-iex-100132.png`: teste B, `Invoke-Expression` no ScriptBlock 4104 (100132)
+- `T1059.001-05-download-100133.png`: teste C, download via `Net.WebClient` (100133)
+- `T1059.001-06-ruido-92213.png`: alerta 92213 expandido, com `__PSScriptPolicyTest` em `targetFilename`
+- `T1059.001-07-cmd-100135.png`: teste A4, alerta com `cmd.exe` como processo pai do `powershell.exe` (100135)

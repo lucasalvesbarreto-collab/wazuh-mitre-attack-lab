@@ -10,7 +10,7 @@ Todas as simulações foram executadas em laboratório isolado, na VM Windows `S
 | SIEM | Wazuh (manager, indexer e dashboard) no Ubuntu Server, host `servidorubuntu` |
 | Alvo | Windows Server 2022 (agente Wazuh `SERVER01`, IP `192.168.5.130`), DC primário do domínio |
 | Rede | Rede interna/host-only, sem acesso externo |
-| Versões | Wazuh: _preencher_ · Windows: _preencher_ · Sysmon e configuração: _preencher_ |
+| Versões | Windows Server 2022 (build 20348) · Windows PowerShell 5.1 · Sysmon coletado pelo agente Wazuh |
 
 ## Por que T1098 num Domain Controller?
 

@@ -67,7 +67,7 @@ T1110 Brute Force ──► T1136.002 Conta criada ──► T1098 Promovida a D
 │   ├── setup-lab.md           ← como reproduzir o ambiente
 │   ├── metodologia.md         ← ciclo simular → observar → escrever → validar
 │   ├── cobertura-mitre.md     ← matriz regra × técnica × teste
-│   ├── evidencias.md          ← índice de prints e JSONs de evidência
+│   ├── evidencias.md          ← índice dos prints de evidência
 │   └── jornada.md             ← diário de bordo: problemas reais e como foram resolvidos
 ├── rules/
 │   └── local_rules.xml        ← todas as regras customizadas consolidadas
@@ -84,7 +84,7 @@ T1110 Brute Force ──► T1136.002 Conta criada ──► T1098 Promovida a D
         ├── simulacao.md       ← como reproduzir cada cenário de teste
         ├── analise.md         ← resultados, ruído, limitações, lições
         ├── playbook-N1.md     ← triagem e resposta para o analista N1
-        └── evidencias/        ← prints do dashboard e JSONs dos alertas
+        └── evidencias/        ← prints do dashboard
 ```
 
 ## Como usar
@@ -128,14 +128,12 @@ Os detalhes estão em [`docs/jornada.md`](docs/jornada.md). Os mais importantes:
 ## Roadmap
 
 - [x] Corrigir 100130/100134 e revalidar a cadeia Base64 (07/11/2026)
-- [ ] Coletar todos os prints de evidência (JSONs exportados, ver `docs/evidencias.md`)
 - [x] Cobrir `-enc` vindo de `cmd.exe`/Office (regra 100135, teste A4)
 - [ ] Silenciar o falso positivo 92213 (`__PSScriptPolicyTest`)
 - [ ] Evitar a sobreposição 100112 × 100113
 - [ ] T1053.005 Scheduled Task · T1543.003 Windows Service · T1003 Credential Dumping
 - [ ] Correlação PowerShell → criação de conta (T1059.001 → T1136.002)
 - [ ] Converter regras para Sigma
-- [ ] Pipeline CI (GitHub Actions) validando o XML das regras a cada push
 
 ## Aviso
 
@@ -145,4 +143,3 @@ ser executados **somente** em ambiente de laboratório isolado e sob sua autoriz
 ## Autor
 
 **Lucas Alves Barreto** — estudante de Ciência da Computação, em transição para DevSecOps.
-<!-- Adicione aqui seu LinkedIn: [LinkedIn](https://www.linkedin.com/in/SEU-PERFIL) -->

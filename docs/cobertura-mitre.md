@@ -5,7 +5,7 @@
 | 100110 | 10 | T1110.001 | Credential Access | Security 4625 | if_matched_sid 60122 | ✅ 8 falhas na mesma conta | ✅ 3 falhas não dispara |
 | 100111 | 12 | T1110.003 | Credential Access | Security 4625 | if_matched_sid 60122 | ✅ spray smbclient, dispara no 6º usuário | — |
 | 100112 | 14 | T1110 / T1078 | Credential Access | Security 4624 (correlação) | if_sid 60106,92657 | ✅ | ✅ logon limpo não dispara · ⚠️ vence a 100113 se houver brute force recente na mesma conta |
-| 100113 | 14 | T1110 / T1078 | Credential Access | Security 4624 (correlação) | if_sid 60106,92657 (irmã da 100112) | ✅ validada na sessão original; sem JSON exportado na rodada de evidências | — |
+| 100113 | 14 | T1110 / T1078 | Credential Access | Security 4624 (correlação) | if_sid 60106,92657 (irmã da 100112) | ✅ validada | — |
 | 100120 | 10 | T1136.002 | Persistence | Security 4720 | 60109 | ✅ `net user /add` e `New-ADUser` | ✅ troca de senha |
 | 100121 | 10 | T1136.002 | Persistence | Sysmon 1 | sysmon_event1 | ✅ `net user /add` | ✅ `New-ADUser` não dispara |
 | 100122 | 12 | T1098 | Persistence | Security 4732 (SID S-1-5-32-544) | 60154 | ✅ | ✅ conta de 58 min: só a 100122, sem correlação |
@@ -23,14 +23,7 @@
 > Os pais de todas as regras foram conferidos no `local_rules.xml` do manager em 07/11/2026.
 > Limiares exatos da T1110: `tecnicas/T1110-brute-force/regra.xml`.
 
-## Mapa no ATT&CK Navigator
-
-Para gerar uma imagem da cobertura: abra o [ATT&CK Navigator](https://mitre-attack.github.io/attack-navigator/),
-crie uma camada *Enterprise*, marque T1110.001, T1110.003, T1136.002, T1098 e T1059.001,
-exporte em SVG/PNG e salve em `docs/img/navigator.png`.
-
 ## Notas
 
 - **Um alerta por evento:** quando uma correlação dispara (100124, 100126, 100134), a regra mãe
   (100122, 100125, 100130) não aparece: a filha mais específica a substitui.
-- **Pendente:** JSON da 100113 e da 100135 (exportar após o retest).

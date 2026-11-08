@@ -1,7 +1,7 @@
 # Setup do lab
 
-Guia para reproduzir o ambiente. Versões usadas: preencher na sua instalação
-(`/var/ossec/bin/wazuh-control info` no Ubuntu, `winver` no Windows, `sysmon -c` para o Sysmon).
+Guia para reproduzir o ambiente. As versões instaladas podem ser consultadas com
+`/var/ossec/bin/wazuh-control info` (Ubuntu), `winver` (Windows) e `sysmon -c` (Sysmon).
 
 ## 1. Rede
 
